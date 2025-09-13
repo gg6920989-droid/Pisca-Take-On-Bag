@@ -1,0 +1,35 @@
+@dp.message(GenStates.waiting_photo, F.photo)
+async def got_photo(message: Message, state: FSMContext):
+    file_id = message.photo[-1].file_id
+    await state.update_data(photo_file_id=file_id)
+
+    data = await state.get_data()
+    preset = data.get("preset_color")
+    if preset:
+        # Если цвет уже выбран в Mini App — сразу генерим
+        from enum import Enum
+        color = BagColor(preset)
+        await message.answer(f"Цвет уже выбран: <b>{COLOR_LABELS[color]}</b>. Обрабатываю фото… ⏳")
+        try:
+            photo_bytes = await download_telegram_file(message.bot, file_id)
+            gen_bytes = await call_flow_api(photo_bytes, color, message.from_user.id)
+        except Exception:
+            gen_bytes = None
+
+        if not gen_bytes:
+            await message.answer("😔 Не вышло сгенерировать. Попробуй ещё раз позже или пришли другое фото. /start")
+            await state.clear()
+            return
+
+        await message.answer_photo(photo=gen_bytes, caption="Готово! Ещё вариант — /start")
+        await state.clear()
+        return
+
+    # Иначе — обычный путь с выбором цвета
+    kb = start_keyboard()
+    await message.answer(
+        "Шаг 2 — выбери <b>цвет сумки</b>:\nМожно кнопками ниже или в мини-приложении.",
+        reply_markup=kb or ReplyKeyboardRemove(),
+    )
+    await message.answer("Быстрый выбор цвета:", reply_markup=color_keyboard())
+    await state.set_state(GenStates.waiting_color)
