@@ -1,32 +1,46 @@
 <script>
   (function () {
-    // 1) Проверяем, открыто ли внутри Telegram
+    // Проверяем, что мы правда внутри Telegram
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    if (tg) tg.ready();
 
-    // 2) Клик по кнопке
+    // Плашка-диагностика внизу
+    const diag = document.createElement('div');
+    diag.style.position = 'fixed';
+    diag.style.left = '12px';
+    diag.style.right = '12px';
+    diag.style.bottom = '12px';
+    diag.style.fontSize = '12px';
+    diag.style.opacity = '0.7';
+    diag.textContent = tg ? 'WebApp OK' : 'WebApp NOT DETECTED — открой через кнопку в Telegram';
+    document.body.appendChild(diag);
+
+    if (tg) {
+      tg.ready();
+      try { tg.expand(); } catch(_) {}
+    }
+
     const btn = document.getElementById('submit');
-    btn.setAttribute('type', 'button'); // на всякий случай
+    btn.setAttribute('type', 'button');
+
     btn.addEventListener('click', () => {
       if (!tg) {
-        alert('Откройте эту страницу через Telegram (кнопка мини-приложения).');
+        alert('Страницу нужно открывать через кнопку мини-приложения в Telegram, не в обычном браузере.');
         return;
       }
       const selected = document.querySelector('input[name="color"]:checked');
       const val = selected ? selected.value : 'white';
 
-      // Визуальный фидбек в приложении
-      try { tg.HapticFeedback && tg.HapticFeedback.impactOccurred('medium'); } catch (_) {}
+      // Вибро/визуальный отклик
+      try { tg.HapticFeedback && tg.HapticFeedback.impactOccurred('medium'); } catch(_) {}
 
-      // Отправляем данные боту
+      // Отправляем данные в чат
       tg.sendData(JSON.stringify({ color: val }));
 
-      // Не обязательно, но полезно чтобы окно закрылось
-      // и пользователь вернулся в чат
-      try { tg.close(); } catch (_) {}
+      // (необязательно) закрыть окно
+      try { tg.close(); } catch(_) {}
 
-      // На случай старых клиентов, покажем тост
-      try { tg.showPopup({ title: 'Отправлено', message: 'Выбор передан боту.' }); } catch (_) {}
+      // (необязательно) поп-ап подтверждения
+      try { tg.showPopup({ title: 'Отправлено', message: 'Выбор цвета передан боту.' }); } catch(_) {}
     });
   })();
 </script>
