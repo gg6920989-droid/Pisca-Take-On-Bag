@@ -1,46 +1,58 @@
-<script>
-  (function () {
-    // Проверяем, что мы правда внутри Telegram
-    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pisca — Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --bg:#111; --fg:#fff; --muted:#aaa; --card:#1a1a1a; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto}
+    .wrap{max-width:520px;margin:0 auto;padding:24px}
+    .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+    h1{font-size:22px;margin:0 0 12px}
+    .grid{display:grid;gap:12px}
+    .opt{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:#222;cursor:pointer}
+    .opt input{margin:0}
+    .hint{color:var(--muted);font-size:13px}
+    button{width:100%;padding:14px 16px;border:0;border-radius:12px;font-weight:600;cursor:pointer}
+    .primary{background:#2ea44f;color:#fff}
+    .diag{position:fixed;left:12px;right:12px;bottom:12px;font-size:12px;opacity:.7}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Выбери цвет сумки</h1>
+      <div class="grid">
+        <label class="opt"><input type="radio" name="color" value="white" checked><span>Белая</span></label>
+        <label class="opt"><input type="radio" name="color" value="black"><span>Чёрная</span></label>
+        <label class="opt"><input type="radio" name="color" value="lilac"><span>Лиловая</span></label>
+      </div>
+      <p class="hint">Фото пришли сообщением в чат боту, а здесь просто выбери цвет. После нажатия кнопки бот начнёт генерацию.</p>
+      <div style="height:12px"></div>
+      <button class="primary" id="submit" type="button">Отправить выбор</button>
+    </div>
+  </div>
 
-    // Плашка-диагностика внизу
-    const diag = document.createElement('div');
-    diag.style.position = 'fixed';
-    diag.style.left = '12px';
-    diag.style.right = '12px';
-    diag.style.bottom = '12px';
-    diag.style.fontSize = '12px';
-    diag.style.opacity = '0.7';
-    diag.textContent = tg ? 'WebApp OK' : 'WebApp NOT DETECTED — открой через кнопку в Telegram';
-    document.body.appendChild(diag);
+  <div id="diag" class="diag"></div>
 
-    if (tg) {
-      tg.ready();
-      try { tg.expand(); } catch(_) {}
-    }
+  <script>
+    (function () {
+      const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+      const d = document.getElementById('diag');
+      d.textContent = tg ? 'WebApp OK' : 'WebApp NOT DETECTED — открой через кнопку в Telegram';
+      if (tg) { try { tg.ready(); tg.expand(); } catch(_) {} }
 
-    const btn = document.getElementById('submit');
-    btn.setAttribute('type', 'button');
-
-    btn.addEventListener('click', () => {
-      if (!tg) {
-        alert('Страницу нужно открывать через кнопку мини-приложения в Telegram, не в обычном браузере.');
-        return;
-      }
-      const selected = document.querySelector('input[name="color"]:checked');
-      const val = selected ? selected.value : 'white';
-
-      // Вибро/визуальный отклик
-      try { tg.HapticFeedback && tg.HapticFeedback.impactOccurred('medium'); } catch(_) {}
-
-      // Отправляем данные в чат
-      tg.sendData(JSON.stringify({ color: val }));
-
-      // (необязательно) закрыть окно
-      try { tg.close(); } catch(_) {}
-
-      // (необязательно) поп-ап подтверждения
-      try { tg.showPopup({ title: 'Отправлено', message: 'Выбор цвета передан боту.' }); } catch(_) {}
-    });
-  })();
-</script>
+      document.getElementById('submit').addEventListener('click', () => {
+        if (!tg) { alert('Открой эту страницу через кнопку мини-приложения в Telegram.'); return; }
+        const val = document.querySelector('input[name="color"]:checked')?.value || 'white';
+        try { tg.HapticFeedback && tg.HapticFeedback.impactOccurred('medium'); } catch(_) {}
+        tg.sendData(JSON.stringify({ color: val }));
+        try { tg.close(); } catch(_) {}
+      });
+    })();
+  </script>
+</body>
+</html>
