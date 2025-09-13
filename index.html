@@ -44,38 +44,3 @@
     });
   })();
 </script>
-@dp.message(F.web_app_data)
-async def webapp_any_state(message: Message, state: FSMContext):
-    import json
-    try:
-        payload = json.loads(message.web_app_data.data)
-        color_raw = payload.get("color", "")
-        color = BagColor(color_raw)
-        await state.update_data(preset_color=color.value)
-    except Exception:
-        await message.answer("Не удалось распознать выбор из Mini App. Попробуй ещё раз.")
-        return
-
-    data = await state.get_data()
-    file_id = data.get("photo_file_id")
-
-    if not file_id:
-        # Фото ещё нет — просим его
-        await message.answer("Цвет сохранил ✅ Теперь пришли фото (как изображение), и я сгенерирую.")
-        await state.set_state(GenStates.waiting_photo)
-        return
-
-    # Фото уже есть — запускаем генерацию сразу
-    try:
-        photo_bytes = await download_telegram_file(message.bot, file_id)
-        gen_bytes = await call_flow_api(photo_bytes, color, message.from_user.id)
-    except Exception:
-        gen_bytes = None
-
-    if not gen_bytes:
-        await message.answer("😔 Не получилось сгенерировать. Попробуй позже или пришли другое фото. /start")
-        await state.clear()
-        return
-
-    await message.answer_photo(photo=gen_bytes, caption="Готово! Ещё вариант — /start")
-    await state.clear()
